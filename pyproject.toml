@@ -9,6 +9,9 @@ dependencies = [
     "langgraph",
     "langchain-openai",
     "python-dotenv",
+    "streamlit>=1.57.0",
+    "pyyaml>=6.0.3",
+    "pydantic>=2.13.4",
 ]
 
 [build-system]

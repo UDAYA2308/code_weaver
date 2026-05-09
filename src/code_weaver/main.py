@@ -214,7 +214,7 @@ llm = ChatOpenAI(
 
 # ── System Prompt ─────────────────────────────────────────────────────────────
 
-def load_system_prompt(path: str = "system.md") -> str:
+def load_system_prompt(path: str = "system_prompt.md") -> str:
     p = Path(path)
     return p.read_text() if p.exists() else "You are a helpful coding agent."
 

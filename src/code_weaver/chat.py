@@ -14,7 +14,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # Re‑use the tools defined in the main module
-from main import (
+from code_weaver.main import (
     read_file,
     write_file,
     edit_file,

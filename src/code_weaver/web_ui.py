@@ -43,7 +43,18 @@ if prompt := st.chat_input("How can I help you with your code today?"):
         # Prepare the state for the graph
         history = []
         for m in st.session_state.messages:
-            history.append((m["role"], m["content"]))
+            # Convert dict history back to tuple/message format if needed
+            # But based on graph.py, it expects a list of messages
+            # We'll use the role/content structure
+            if isinstance(m, dict):
+                # Simple conversion for the graph
+                from langchain_core.messages import HumanMessage, AIMessage
+                if m["role"] == "user":
+                    history.append(HumanMessage(content=m["content"]))
+                elif m["role"] == "assistant":
+                    history.append(AIMessage(content=m["content"]))
+            else:
+                history.append(m)
             
         inputs = {
             "messages": history,
@@ -53,23 +64,23 @@ if prompt := st.chat_input("How can I help you with your code today?"):
         full_response = ""
         tool_interactions = []
         
-        # Use app.stream with stream_mode="values" to get the full state after each node
-        for event in app.stream(inputs, stream_mode="values"):
-            if "messages" in event:
-                last_msg = event["messages"][-1]
-                
-                # Helper to safely get message type and content
-                msg_type = getattr(last_msg, 'type', None)
-                msg_content = getattr(last_msg, 'content', "")
-
-                # 1. Handle Text Streaming from the agent
-                if msg_type == "ai" and msg_content:
-                    full_response = msg_content
+        # Use stream_mode="messages" to get token-by-token streaming for AI messages
+        # and "values" for state updates. 
+        # To get both, we can use stream_mode=["messages", "values"] or just "messages"
+        # and track the state.
+        
+        for msg, metadata in app.stream(inputs, stream_mode="messages"):
+            # msg is the message chunk, metadata contains node info
+            
+            # 1. Handle Token Streaming from the agent
+            if metadata.get("langgraph_node") == "agent":
+                if msg.content:
+                    full_response += msg.content
                     message_placeholder.markdown(full_response + "▌")
                 
-                # 2. Handle Tool Calls (Requests)
-                if hasattr(last_msg, 'tool_calls') and last_msg.tool_calls:
-                    for tool_call in last_msg.tool_calls:
+                # Handle tool calls appearing in the stream
+                if hasattr(msg, 'tool_calls') and msg.tool_calls:
+                    for tool_call in msg.tool_calls:
                         if not any(ti['id'] == tool_call['id'] for ti in tool_interactions):
                             tool_interactions.append({
                                 "id": tool_call['id'],
@@ -77,13 +88,15 @@ if prompt := st.chat_input("How can I help you with your code today?"):
                                 "args": tool_call['args'],
                                 "response": "Executing..."
                             })
-                
-                # 3. Handle Tool Responses
-                if msg_type == "tool":
-                    tool_call_id = getattr(last_msg, 'tool_call_id', None)
+
+            # 2. Handle Tool Responses
+            # ToolNode outputs are usually full messages, not chunks
+            if metadata.get("langgraph_node") == "tools":
+                if msg.type == "tool":
+                    tool_call_id = getattr(msg, 'tool_call_id', None)
                     for ti in tool_interactions:
                         if ti['id'] == tool_call_id:
-                            ti['response'] = msg_content
+                            ti['response'] = msg.content
 
         # Final cleanup of the placeholder
         message_placeholder.markdown(full_response)

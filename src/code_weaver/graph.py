@@ -1,13 +1,9 @@
-import os
-from pathlib import Path
-from typing import Annotated
-import operator
-
 from langchain_openai import ChatOpenAI
 from langgraph.graph import StateGraph, END
 from langgraph.prebuilt import ToolNode
 from langchain_core.messages import SystemMessage
 
+from .config import config
 from .state import AgentState
 from .tools import all_tools
 from .utils import load_system_prompt
@@ -15,10 +11,10 @@ from .utils import load_system_prompt
 # ── LLM Setup ────────────────────────────────────────────────────────────────────
 
 llm = ChatOpenAI(
-    model=os.environ.get("OPENAI_MODEL", "gpt-4o"),
-    base_url=os.environ.get("OPENAI_API_BASE_URL", "https://api.openai.com/v1"),
-    api_key=os.environ.get("OPENAI_API_KEY"),
-    temperature=0,
+    model=config.openai.model,
+    base_url=config.openai.base_url,
+    api_key=config.openai.api_key,
+    temperature=config.openai.temperature,
     streaming=True,
 ).bind_tools(all_tools)
 

@@ -1,12 +1,11 @@
 import os
 from pathlib import Path
 
-def load_system_prompt(filename="system_prompt.md"):
-    """Loads the system prompt from a markdown file in the root directory."""
-    # The prompt is in the root directory, not inside src/code_weaver
-    # We go up two levels from this file's location to reach the root
+def load_system_prompt():
+    """Loads the system prompt from a markdown file defined in config."""
+    from .config import config
     root_dir = Path(__file__).parent.parent.parent
-    prompt_path = root_dir / filename
+    prompt_path = root_dir / config.paths.system_prompt
     
     try:
         if prompt_path.exists():

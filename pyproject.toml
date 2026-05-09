@@ -2,14 +2,15 @@
 name = "code_weaver"
 version = "0.1.0"
 description = "An AI Coding Agent built with LangGraph and LangChain"
+readme = "README.md"
+requires-python = ">=3.10"
 dependencies = [
     "langchain",
     "langgraph",
     "langchain-openai",
     "python-dotenv",
 ]
-requires-python = ">=3.10"
 
 [build-system]
-requires = ["setuptools>=61.0"]
-build-backend = "setuptools.build_meta"
+requires = ["hatchling"]
+build-backend = "hatchling.build"

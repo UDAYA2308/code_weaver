@@ -6,11 +6,14 @@ import json
 st.set_page_config(page_title="Code Weaver AI", page_icon="🧶", layout="wide")
 
 st.title("🧶 Code Weaver AI")
-st.markdown("An AI coding agent that can read, write, and execute code on your local system.")
+st.markdown(
+    "An AI coding agent that can read, write, and execute code on your local system."
+)
 
 # Initialize session state
 if "messages" not in st.session_state:
     st.session_state.messages = []
+
 
 def render_group(messages):
     """Helper to render a group of messages (User or Assistant/Tool)"""
@@ -18,11 +21,17 @@ def render_group(messages):
         return
 
     # Map tool_call_id -> output for grouped rendering
-    tool_outputs = {msg.tool_call_id: msg.content for msg in messages if isinstance(msg, ToolMessage)}
+    tool_outputs = {
+        msg.tool_call_id: msg.content
+        for msg in messages
+        if isinstance(msg, ToolMessage)
+    }
 
     if isinstance(messages[0], HumanMessage):
         with st.chat_message("user"):
-            combined_text = "\n\n".join([m.content for m in messages if hasattr(m, 'content')])
+            combined_text = "\n\n".join(
+                [m.content for m in messages if hasattr(m, "content")]
+            )
             st.markdown(combined_text)
     else:
         with st.chat_message("assistant"):
@@ -33,12 +42,15 @@ def render_group(messages):
                     if msg.tool_calls:
                         for tool_call in msg.tool_calls:
                             with st.expander(f"🛠️ Tool: {tool_call['name']}"):
-                                st.markdown(f"**Arguments:**\n```json\n{json.dumps(tool_call['args'], indent=2)}\n```")
-                                output = tool_outputs.get(tool_call['id'])
+                                st.markdown(
+                                    f"**Arguments:**\n```json\n{json.dumps(tool_call['args'], indent=2)}\n```"
+                                )
+                                output = tool_outputs.get(tool_call["id"])
                                 if output:
                                     st.markdown(f"**Response:**\n```\n{output}\n```")
                                 else:
                                     st.markdown("**Response:**\n*⏳ Executing...*")
+
 
 def render_all_history(messages):
     """Groups and renders the entire message history."""
@@ -59,6 +71,7 @@ def render_all_history(messages):
 
     for group in grouped:
         render_group(group)
+
 
 # 1. Render existing history
 render_all_history(st.session_state.messages)
@@ -89,12 +102,12 @@ if prompt := st.chat_input("How can I help you today?"):
             # messages that belong to the current turn (everything after the last user message)
             # Find the index of the last HumanMessage
             last_user_idx = -1
-            for i in range(len(st.session_state.messages)-1, -1, -1):
+            for i in range(len(st.session_state.messages) - 1, -1, -1):
                 if isinstance(st.session_state.messages[i], HumanMessage):
                     last_user_idx = i
                     break
 
-            current_turn_messages = st.session_state.messages[last_user_idx + 1:]
+            current_turn_messages = st.session_state.messages[last_user_idx + 1 :]
 
             # Update the response placeholder with the current turn's content
             with response_placeholder.container():
@@ -103,7 +116,11 @@ if prompt := st.chat_input("How can I help you today?"):
                     # Since we are already inside a 'with st.chat_message("assistant")' block,
                     # we just render the content of the AIMessages and Tool expanders
                     # without creating another chat_message bubble.
-                    tool_outputs = {msg.tool_call_id: msg.content for msg in current_turn_messages if isinstance(msg, ToolMessage)}
+                    tool_outputs = {
+                        msg.tool_call_id: msg.content
+                        for msg in current_turn_messages
+                        if isinstance(msg, ToolMessage)
+                    }
                     for msg in current_turn_messages:
                         if isinstance(msg, AIMessage):
                             if msg.content:
@@ -111,12 +128,18 @@ if prompt := st.chat_input("How can I help you today?"):
                             if msg.tool_calls:
                                 for tool_call in msg.tool_calls:
                                     with st.expander(f"🛠️ Tool: {tool_call['name']}"):
-                                        st.markdown(f"**Arguments:**\n```json\n{json.dumps(tool_call['args'], indent=2)}\n```")
-                                        output = tool_outputs.get(tool_call['id'])
+                                        st.markdown(
+                                            f"**Arguments:**\n```json\n{json.dumps(tool_call['args'], indent=2)}\n```"
+                                        )
+                                        output = tool_outputs.get(tool_call["id"])
                                         if output:
-                                            st.markdown(f"**Response:**\n```\n{output}\n```")
+                                            st.markdown(
+                                                f"**Response:**\n```\n{output}\n```"
+                                            )
                                         else:
-                                            st.markdown("**Response:**\n*⏳ Executing...*")
+                                            st.markdown(
+                                                "**Response:**\n*⏳ Executing...*"
+                                            )
 
         status_placeholder.empty()
 

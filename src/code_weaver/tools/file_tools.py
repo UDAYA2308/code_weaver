@@ -4,6 +4,7 @@ from pathlib import Path
 from typing import List
 from langchain_core.tools import tool
 
+
 def _load_gitignore(root: Path) -> List[str]:
     """Load .gitignore patterns from *root* (or its ancestors).
     Returns a list of glob‑style patterns. Empty list if no .gitignore found.
@@ -19,6 +20,7 @@ def _load_gitignore(root: Path) -> List[str]:
         patterns.append(line)
     return patterns
 
+
 def _is_ignored(path: Path, patterns: List[str]) -> bool:
     """Return True if *path* matches any of the gitignore *patterns*.
     The matching follows the simple glob rules used by ``Path.match``.
@@ -28,9 +30,11 @@ def _is_ignored(path: Path, patterns: List[str]) -> bool:
             return True
     return False
 
+
 # Project root is the directory that contains the src folder
 _PROJECT_ROOT = Path(__file__).resolve().parents[2]
 _GITIGNORE_PATTERNS = _load_gitignore(_PROJECT_ROOT)
+
 
 @tool
 def read_file(path: str, start_line: int = None, end_line: int = None) -> str:
@@ -47,7 +51,8 @@ def read_file(path: str, start_line: int = None, end_line: int = None) -> str:
         start = (start_line or 1) - 1
         end = end_line if end_line is not None else len(lines)
         lines = lines[start:end]
-    return "\n".join(f"{i+1}: {line}" for i, line in enumerate(lines))
+    return "\n".join(f"{i + 1}: {line}" for i, line in enumerate(lines))
+
 
 @tool
 def edit_file(path: str, old_content: str, new_content: str) -> str:
@@ -65,6 +70,7 @@ def edit_file(path: str, old_content: str, new_content: str) -> str:
     p.write_text(text.replace(old_content, new_content, 1), encoding="utf-8")
     return f"Edited {path}"
 
+
 @tool
 def write_file(path: str, content: str) -> str:
     """Write *content* to *path*, creating parent directories.
@@ -77,10 +83,10 @@ def write_file(path: str, content: str) -> str:
     p.write_text(content, encoding="utf-8")
     return f"Written to {path}"
 
+
 @tool
 def delete_path(path: str) -> str:
-    """Delete a file or directory unless it is ignored.
-    """
+    """Delete a file or directory unless it is ignored."""
     p = Path(path).resolve()
     if not p.exists():
         return f"Error: {path} does not exist."
@@ -92,10 +98,10 @@ def delete_path(path: str) -> str:
         p.unlink()
     return f"Deleted {path}"
 
+
 @tool
 def list_dir(path: str = ".", depth: int = 2) -> str:
-    """List a directory tree up to *depth* levels, skipping ignored entries.
-    """
+    """List a directory tree up to *depth* levels, skipping ignored entries."""
     base = Path(path).resolve()
     if not base.is_dir():
         return f"Error: {path} is not a directory."
@@ -109,6 +115,7 @@ def list_dir(path: str = ".", depth: int = 2) -> str:
         indent = "  " * (len(rel.parts) - 1)
         result.append(f"{indent}{p.name}{'/' if p.is_dir() else ''}")
     return "\n".join(result) or "Empty directory."
+
 
 @tool
 def search(path: str, pattern: str, file_glob: str = "*") -> str:
@@ -130,5 +137,6 @@ def search(path: str, pattern: str, file_glob: str = "*") -> str:
             if re.search(pattern, line):
                 results.append(f"{p}:{i}: {line.strip()}")
     return "\n".join(results) if results else "No matches found."
+
 
 file_tools = [read_file, write_file, edit_file, delete_path, list_dir, search]

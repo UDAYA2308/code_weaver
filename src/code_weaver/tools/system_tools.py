@@ -2,6 +2,7 @@ import subprocess
 from pathlib import Path
 from langchain_core.tools import tool
 
+
 @tool
 def run_command(command: str, cwd: str = ".") -> str:
     """Execute *command* in a subprocess and return its output.
@@ -18,5 +19,6 @@ def run_command(command: str, cwd: str = ".") -> str:
     )
     output = result.stdout + result.stderr
     return output.strip() or "Command completed with no output."
+
 
 system_tools = [run_command]

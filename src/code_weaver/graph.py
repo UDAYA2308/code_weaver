@@ -20,26 +20,27 @@ llm = ChatOpenAI(
 
 # ── Graph Nodes ──────────────────────────────────────────────────────────────────
 
+
 def agent_node(state: AgentState) -> dict:
     system_prompt = load_system_prompt()
 
     if state.get("scratchpad"):
         system_prompt += f"\n\n## Scratchpad\n{state['scratchpad']}"
 
-    response = llm.invoke(
-        [SystemMessage(content=system_prompt)] + state["messages"]
-    )
+    response = llm.invoke([SystemMessage(content=system_prompt)] + state["messages"])
     return {
         "messages": [response],
         "iteration": state.get("iteration", 0) + 1,
-        "llm_calls": state.get("llm_calls", 0) + 1
+        "llm_calls": state.get("llm_calls", 0) + 1,
     }
+
 
 def should_continue(state: AgentState) -> str:
     last = state["messages"][-1]
     if hasattr(last, "tool_calls") and last.tool_calls:
         return "tools"
     return END
+
 
 # ── Graph Construction ───────────────────────────────────────────────────────────
 

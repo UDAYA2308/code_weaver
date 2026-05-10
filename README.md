@@ -30,15 +30,27 @@ You can interact with Code Weaver via two different interfaces:
 
 **Option A: Interactive CLI**
 ```bash
+export PYTHONPATH=$PYTHONPATH:$(pwd)
 uv run python -m src.code_weaver.chat
 ```
 
 **Option B: Web UI (Streamlit)**
 ```bash
+export PYTHONPATH=$PYTHONPATH:$(pwd)
 uv run streamlit run src/code_weaver/web_ui.py
 ```
 
 ---
+
+## 🧪 Testing
+The project includes a comprehensive test suite to ensure the reliability of the agent's tools and graph logic.
+
+To run the tests:
+```bash
+export PYTHONPATH=$PYTHONPATH:$(pwd)
+uv run pytest
+```
+
 
 ## 🛠️ Technical Architecture
 

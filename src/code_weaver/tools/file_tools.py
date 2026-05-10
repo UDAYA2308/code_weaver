@@ -1,5 +1,3 @@
-import os
-import subprocess
 import shutil
 import re
 from pathlib import Path
@@ -49,7 +47,7 @@ def read_file(path: str, start_line: int = None, end_line: int = None) -> str:
         start = (start_line or 1) - 1
         end = end_line if end_line is not None else len(lines)
         lines = lines[start:end]
-    return "\n".join(f"{i+1}: {l}" for i, l in enumerate(lines))
+    return "\n".join(f"{i+1}: {line}" for i, line in enumerate(lines))
 
 @tool
 def edit_file(path: str, old_content: str, new_content: str) -> str:

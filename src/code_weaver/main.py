@@ -1,5 +1,3 @@
-import os
-import sys
 
 def main():
     print("Code Weaver is now in chat-only mode.")

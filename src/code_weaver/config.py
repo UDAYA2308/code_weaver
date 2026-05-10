@@ -1,8 +1,6 @@
-import os
 import yaml
 from pathlib import Path
-from pydantic import BaseModel, Field
-from typing import Optional
+from pydantic import BaseModel
 
 class OpenAIConfig(BaseModel):
     api_key: str

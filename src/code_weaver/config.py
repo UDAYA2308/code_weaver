@@ -31,21 +31,7 @@ def load_config(config_path: str = "config.yaml") -> AppConfig:
     with open(full_path, "r") as f:
         config_dict = yaml.safe_load(f)
     
-    # Resolve environment variables in the yaml (e.g., ${OPENAI_API_KEY})
-    def resolve_env(val):
-        if isinstance(val, str) and val.startswith("${") and val.endswith("}"):
-            env_var = val[2:-1]
-            return os.environ.get(env_var, val)
-        return val
-
-    # Simple recursive resolution for the dict
-    def resolve_dict(d):
-        if isinstance(d, dict):
-            return {k: resolve_dict(v) for k, v in d.items()}
-        return resolve_env(d)
-
-    resolved_dict = resolve_dict(config_dict)
-    return AppConfig(**resolved_dict)
+    return AppConfig(**config_dict)
 
 # Singleton instance
 config = load_config()

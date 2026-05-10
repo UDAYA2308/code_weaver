@@ -7,11 +7,6 @@ from langchain_core.messages import HumanMessage, AIMessage, SystemMessage
 from langgraph.graph import StateGraph, END
 from langgraph.prebuilt import ToolNode
 
-from dotenv import load_dotenv
-
-# Load environment variables
-load_dotenv()
-
 # Import the compiled app and state from the graph module
 from .graph import app
 from .state import AgentState

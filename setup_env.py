@@ -17,8 +17,12 @@ def setup_files():
     env_file = ".env"
     if not os.path.exists(config_file):
         config_content = {
-            "openai": {"api_key": "your_api_key_here", "model": "gpt-4o", "api_base_url": "https://api.openai.com/v1",
-                       "temperature": 0.0},
+            "openai": {
+                "api_key": "your_api_key_here",
+                "model": "gpt-4o",
+                "api_base_url": "https://api.openai.com/v1",
+                "temperature": 0.0,
+            },
             "paths": {"system_prompt": "system_prompt.md"},
             "agent": {"max_iterations": 10},
         }
@@ -32,7 +36,7 @@ def setup_files():
 async def init_db():
     db_url = "sqlite+aiosqlite:///chainlit.db"
 
-    print(f"🛠️  Checking Chainlit SQLAlchemy schema...")
+    print("🛠️  Checking Chainlit SQLAlchemy schema...")
 
     schema_queries = [
         """CREATE TABLE users (
@@ -100,7 +104,7 @@ async def init_db():
             value INTEGER NOT NULL,
             comment TEXT,
             FOREIGN KEY (threadId) REFERENCES threads(id) ON DELETE CASCADE
-        );"""
+        );""",
     ]
 
     engine = create_async_engine(db_url)

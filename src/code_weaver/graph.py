@@ -1,7 +1,7 @@
+from langchain_core.messages import SystemMessage
 from langchain_openai import ChatOpenAI
 from langgraph.graph import StateGraph, END
 from langgraph.prebuilt import ToolNode
-from langchain_core.messages import SystemMessage
 
 from .config import config
 from .state import AgentState
@@ -17,6 +17,7 @@ llm = ChatOpenAI(
     temperature=config.openai.temperature,
     streaming=True,
 ).bind_tools(all_tools)
+
 
 # ── Graph Nodes ──────────────────────────────────────────────────────────────────
 

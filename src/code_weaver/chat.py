@@ -4,6 +4,7 @@ from langchain_core.messages import HumanMessage
 from .graph import app
 from .state import AgentState
 
+
 # ---------------------------------------------------------------------------
 # Chat loop
 # ---------------------------------------------------------------------------

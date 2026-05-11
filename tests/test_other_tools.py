@@ -1,7 +1,8 @@
 from unittest.mock import patch, MagicMock
+
+from src.code_weaver.tools.code_tools import execute_python_code
 from src.code_weaver.tools.system_tools import run_command
 from src.code_weaver.tools.web_tools import fetch_url, google_search
-from src.code_weaver.tools.code_tools import execute_python_code
 
 
 def test_run_command():

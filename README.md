@@ -98,7 +98,7 @@ code_weaver/
 │       ├── state.py     # AgentState TypedDict definition
 │       ├── config.py    # Pydantic configuration loader
 │       ├── utils.py     # System prompt and helper utilities
-│       ├── web_ui.py    # Streamlit-based visual interface
+│       ├── web_ui.py    # Chainlit-based visual interface
 │       └── tools/       # Tool implementations
 │           ├── __init__.py
 │           ├── file_tools.py
@@ -106,3 +106,4 @@ code_weaver/
 │           ├── web_tools.py
 │           └── code_tools.py
 ```
+`

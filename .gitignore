@@ -14,6 +14,9 @@ dist/
 *.egg-info/
 .idea/
 .vscode/
+.chainlit/
+chainlit.db
+
 venv/
 ENV/
 build/

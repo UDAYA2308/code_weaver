@@ -1,147 +1,119 @@
-import streamlit as st
-from langchain_core.messages import AIMessage, ToolMessage, HumanMessage
-from code_weaver.graph import app
+import sqlite3
 import json
+import chainlit as cl
+from chainlit.data.sql_alchemy import SQLAlchemyDataLayer
+from langchain_core.messages import HumanMessage, AIMessage
+from code_weaver.graph import app
+from dotenv import load_dotenv
 
-st.set_page_config(page_title="Code Weaver AI", page_icon="🧶", layout="wide")
+load_dotenv()
 
-st.title("🧶 Code Weaver AI")
-st.markdown(
-    "An AI coding agent that can read, write, and execute code on your local system."
-)
+# ── 1. SQLite JSON Adapters ──────────────────────────────────────────────────
+sqlite3.register_adapter(list, json.dumps)
+sqlite3.register_adapter(dict, json.dumps)
 
-# Initialize session state
-if "messages" not in st.session_state:
-    st.session_state.messages = []
+# ── 2. Persistence & Auth ───────────────────────────────────────────────────
+# We store the data layer instance globally so we can access it in 'main'
+_data_layer = SQLAlchemyDataLayer(conninfo="sqlite+aiosqlite:///chainlit.db")
 
 
-def render_group(messages):
-    """Helper to render a group of messages (User or Assistant/Tool)"""
-    if not messages:
-        return
+@cl.data_layer
+def get_data_layer():
+    return _data_layer
 
-    # Map tool_call_id -> output for grouped rendering
-    tool_outputs = {
-        msg.tool_call_id: msg.content
-        for msg in messages
-        if isinstance(msg, ToolMessage)
+
+@cl.password_auth_callback
+def auth_callback(username: str, password: str):
+    if username == "admin" and password == "weaver123":
+        return cl.User(identifier="admin", metadata={"role": "admin"})
+    return None
+
+
+# ── 3. Chat Logic ───────────────────────────────────────────────────────────
+
+def get_initial_state():
+    return {
+        "task": "",
+        "messages": [],
+        "scratchpad": "",
+        "working_files": [],
+        "iteration": 0,
+        "llm_calls": 0,
     }
 
-    if isinstance(messages[0], HumanMessage):
-        with st.chat_message("user"):
-            combined_text = "\n\n".join(
-                [m.content for m in messages if hasattr(m, "content")]
-            )
-            st.markdown(combined_text)
-    else:
-        with st.chat_message("assistant"):
-            for msg in messages:
-                if isinstance(msg, AIMessage):
-                    if msg.content:
-                        st.markdown(msg.content)
-                    if msg.tool_calls:
-                        for tool_call in msg.tool_calls:
-                            with st.expander(f"🛠️ Tool: {tool_call['name']}"):
-                                st.markdown(
-                                    f"**Arguments:**\n```json\n{json.dumps(tool_call['args'], indent=2)}\n```"
-                                )
-                                output = tool_outputs.get(tool_call["id"])
-                                if output:
-                                    st.markdown(f"**Response:**\n```\n{output}\n```")
-                                else:
-                                    st.markdown("**Response:**\n*⏳ Executing...*")
+
+@cl.on_chat_start
+async def start():
+    cl.user_session.set("graph_state", get_initial_state())
 
 
-def render_all_history(messages):
-    """Groups and renders the entire message history."""
-    if not messages:
-        return
+@cl.on_chat_resume
+async def on_chat_resume(thread):
+    messages = []
+    for step in thread.get("steps", []):
+        if step.get("type") == "user_message":
+            messages.append(HumanMessage(content=step.get("output", "")))
+        elif step.get("type") in ["assistant_message", "run"]:
+            if step.get("output") and not step.get("parentId"):
+                messages.append(AIMessage(content=step.get("output", "")))
 
-    grouped = []
-    current_group = [messages[0]]
-    for msg in messages[1:]:
-        is_user = isinstance(msg, HumanMessage)
-        prev_is_user = isinstance(current_group[0], HumanMessage)
-        if is_user == prev_is_user:
-            current_group.append(msg)
-        else:
-            grouped.append(current_group)
-            current_group = [msg]
-    grouped.append(current_group)
+    meta = thread.get("metadata", {})
+    # SQLite returns JSON as string, handle conversion
+    if isinstance(meta, str):
+        try:
+            meta = json.loads(meta)
+        except (json.JSONDecodeError, TypeError):
+            meta = {}
 
-    for group in grouped:
-        render_group(group)
+    cl.user_session.set("graph_state", {
+        "task": meta.get("task", ""),
+        "messages": messages,
+        "scratchpad": meta.get("scratchpad", ""),
+        "working_files": meta.get("working_files", []),
+        "iteration": meta.get("iteration", 0),
+        "llm_calls": meta.get("llm_calls", 0),
+    })
 
 
-# 1. Render existing history
-render_all_history(st.session_state.messages)
+@cl.on_message
+async def main(message: cl.Message):
+    state = cl.user_session.get("graph_state")
+    state["messages"].append(HumanMessage(content=message.content))
 
-# 2. Chat input
-if prompt := st.chat_input("How can I help you today?"):
-    user_msg = HumanMessage(content=prompt)
-    st.session_state.messages.append(user_msg)
+    status_msg = cl.Message(content="")
 
-    # Render the user message immediately
-    render_group([user_msg])
+    final_state = state
+    async for chunk in app.astream(state, stream_mode="values"):
+        final_state = chunk
+        if chunk.get("messages"):
+            last_msg = chunk["messages"][-1]
+            if isinstance(last_msg, AIMessage) and last_msg.content:
+                status_msg.content = last_msg.content
 
-    # Create a container for the agent's multi-turn response
-    with st.chat_message("assistant"):
-        status_placeholder = st.empty()
-        response_placeholder = st.empty()
+    await status_msg.send()
 
-        status_placeholder.markdown("Thinking and executing... ⏳")
+    new_state = {
+        "task": final_state.get("task", ""),
+        "messages": final_state["messages"],
+        "scratchpad": final_state.get("scratchpad", ""),
+        "working_files": final_state.get("working_files", []),
+        "iteration": final_state.get("iteration", state["iteration"]),
+        "llm_calls": final_state.get("llm_calls", state["llm_calls"]),
+    }
 
-        inputs = {"messages": st.session_state.messages}
+    # ── UPDATED: Access the global data layer instance directly ──
+    try:
+        await _data_layer.update_thread(
+            thread_id=cl.context.session.thread_id,
+            metadata={
+                "task": new_state["task"],
+                "scratchpad": new_state["scratchpad"],
+                "working_files": new_state["working_files"],
+                "iteration": new_state["iteration"],
+                "llm_calls": new_state["llm_calls"]
+            }
+        )
+    except Exception as e:
+        print(f"⚠️ Metadata update skipped: {e}")
 
-        # Use stream_mode="values" to get state updates after every node
-        for chunk in app.stream(inputs, stream_mode="values"):
-            # Update session state
-            st.session_state.messages = chunk.get("messages", [])
-
-            # To avoid re-rendering the whole history, we only render the
-            # messages that belong to the current turn (everything after the last user message)
-            # Find the index of the last HumanMessage
-            last_user_idx = -1
-            for i in range(len(st.session_state.messages) - 1, -1, -1):
-                if isinstance(st.session_state.messages[i], HumanMessage):
-                    last_user_idx = i
-                    break
-
-            current_turn_messages = st.session_state.messages[last_user_idx + 1 :]
-
-            # Update the response placeholder with the current turn's content
-            with response_placeholder.container():
-                # We use the same grouping logic for the current turn
-                if current_turn_messages:
-                    # Since we are already inside a 'with st.chat_message("assistant")' block,
-                    # we just render the content of the AIMessages and Tool expanders
-                    # without creating another chat_message bubble.
-                    tool_outputs = {
-                        msg.tool_call_id: msg.content
-                        for msg in current_turn_messages
-                        if isinstance(msg, ToolMessage)
-                    }
-                    for msg in current_turn_messages:
-                        if isinstance(msg, AIMessage):
-                            if msg.content:
-                                st.markdown(msg.content)
-                            if msg.tool_calls:
-                                for tool_call in msg.tool_calls:
-                                    with st.expander(f"🛠️ Tool: {tool_call['name']}"):
-                                        st.markdown(
-                                            f"**Arguments:**\n```json\n{json.dumps(tool_call['args'], indent=2)}\n```"
-                                        )
-                                        output = tool_outputs.get(tool_call["id"])
-                                        if output:
-                                            st.markdown(
-                                                f"**Response:**\n```\n{output}\n```"
-                                            )
-                                        else:
-                                            st.markdown(
-                                                "**Response:**\n*⏳ Executing...*"
-                                            )
-
-        status_placeholder.empty()
-
-    # Final rerun to ensure the state is perfectly synced for the next turn
-    st.rerun()
+    cl.user_session.set("graph_state", new_state)

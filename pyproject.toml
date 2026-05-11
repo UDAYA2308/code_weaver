@@ -5,15 +5,19 @@ description = "An AI Coding Agent built with LangGraph and LangChain"
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
-    "langchain",
-    "langgraph",
-    "langchain-openai",
-    "python-dotenv",
-    "streamlit>=1.57.0",
-    "pyyaml>=6.0.3",
-    "pydantic>=2.13.4",
-    "googlesearch-python>=1.3.0",
-    "ruff>=0.15.12",
+    "langchain==1.2.18",
+    "langgraph==1.1.10",
+    "langchain-openai==1.2.1",
+    "python-dotenv==1.2.2",
+    "streamlit==1.57.0",
+    "pyyaml==6.0.3",
+    "pydantic==2.13.4",
+    "googlesearch-python==1.3.0",
+    "ruff==0.15.12",
+    "chainlit==2.11.1",
+    "sqlalchemy==2.0.49",
+    "aiosqlite==0.22.1",
+    "greenlet==3.5.0",
 ]
 
 [build-system]
@@ -22,6 +26,6 @@ build-backend = "hatchling.build"
 
 [dependency-groups]
 dev = [
-    "pytest>=9.0.3",
-    "tomli>=2.4.1",
+    "pytest==9.0.3",
+    "tomli==2.4.1",
 ]

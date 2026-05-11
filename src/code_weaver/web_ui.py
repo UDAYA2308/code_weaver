@@ -1,5 +1,6 @@
 import json
 import sqlite3
+import asyncio
 
 import chainlit as cl
 from chainlit.data.sql_alchemy import SQLAlchemyDataLayer
@@ -81,92 +82,72 @@ async def on_chat_resume(thread):
         },
     )
 
-
-import json
-import chainlit as cl
-
-
 @cl.on_message
 async def main(message: cl.Message):
     state = cl.user_session.get("graph_state") or get_initial_state()
     state["messages"].append(HumanMessage(content=message.content))
 
+    ui_msg = cl.Message(content="")
+    
     active_steps = {}
-    current_text_msg = None
+    parent_actions_step = None
     final_state = state
 
     async for chunk in app.astream(
-            state,
-            stream_mode=["messages", "values"],
-            version="v2",
-            config={"configurable": {"thread_id": cl.context.session.thread_id}},
+        state,
+        stream_mode=["messages", "values"],
+        version="v2",
+        config={"configurable": {"thread_id": cl.context.session.thread_id}},
     ):
-        stream_type = chunk.get("type")
-        data = chunk.get("data")
+        if chunk["type"] == "messages":
+            msg_chunk, metadata = chunk["data"]
+            node_name = metadata.get("langgraph_node")
 
-        if stream_type == "messages":
-            msg_chunk, metadata = data
-            if metadata.get("langgraph_node") == "agent":
-                # 1. Handle Tool Intent
-                if hasattr(msg_chunk, "tool_calls") and msg_chunk.tool_calls:
-                    if current_text_msg:
-                        await current_text_msg.send()
-                        current_text_msg = None
+            if node_name == "agent" and hasattr(msg_chunk, "content") and msg_chunk.content:
+                if not any(tag in msg_chunk.content for tag in ["<|", "|>", "thought"]):
+                    await ui_msg.stream_token(msg_chunk.content)
 
-                    for tc in msg_chunk.tool_calls:
-                        tc_id = tc.get("id")
-                        if tc_id and tc_id not in active_steps:
-                            # Create Step (Sibling)
+            if node_name == "agent" and hasattr(msg_chunk, "tool_calls") and msg_chunk.tool_calls:
+                if parent_actions_step is None:
+                    parent_actions_step = cl.Step(name="⚙️ Actions Taken")
+                    await parent_actions_step.send()
+
+                for tc in msg_chunk.tool_calls:
+                    tid = tc.get("id")
+                    if tid:
+                        if tid not in active_steps:
                             step = cl.Step(
-                                name=f"🛠️ {tc['name']}",
-                                type="tool",
-                                parent_id=None,
-                                show_input="json",
-                                default_open=False,
+                                name=f"🛠️ Tool: {tc['name']}", 
+                                parent_id=parent_actions_step.id,
+                                type="tool"
                             )
                             await step.send()
-                            active_steps[tc_id] = step
+                            active_steps[tid] = step
+                        
+                        if tc.get("args"):
+                            active_steps[tid].input = tc["args"]
+                            await active_steps[tid].update()
 
-                # 2. Handle Content
-                elif hasattr(msg_chunk, "content") and msg_chunk.content:
-                    if any(tag in msg_chunk.content for tag in ["<|", "|>", "thought"]):
-                        continue
+        elif chunk["type"] == "values":
+            final_state = chunk["data"]
+            all_msgs = final_state.get("messages", [])
 
-                    if current_text_msg is None:
-                        current_text_msg = cl.Message(content="")
-
-                    await current_text_msg.stream_token(msg_chunk.content)
-
-        elif stream_type == "values":
-            # 3. Sync Arguments and Responses from the Source of Truth
-            all_msgs = data.get("messages", [])
-
-            # Map tool call data
-            for m in reversed(all_msgs):
+            for m in all_msgs:
                 if isinstance(m, AIMessage) and m.tool_calls:
                     for tc in m.tool_calls:
                         tid = tc.get("id")
                         if tid in active_steps:
-                            # Finalize the arguments
                             active_steps[tid].input = tc.get("args", {})
                             await active_steps[tid].update()
-                    break
+                
+                if isinstance(m, ToolMessage):
+                    tid = m.tool_call_id
+                    if tid in active_steps:
+                        step = active_steps[tid]
+                        if not step.output:
+                            step.output = m.content
+                            step.language = "json" if isinstance(m.content, (dict, list)) else "markdown"
+                            await step.update()
 
-            # Map tool result data
-            tool_responses = {
-                m.tool_call_id: m.content
-                for m in all_msgs
-                if isinstance(m, ToolMessage)
-            }
-            for tid, step in active_steps.items():
-                if tid in tool_responses and not step.output:
-                    step.output = tool_responses[tid]
-                    step.language = "markdown"
-                    await step.update()
-
-            final_state = data
-
-    if current_text_msg:
-        await current_text_msg.send()
-
+    await ui_msg.send()
     cl.user_session.set("graph_state", final_state)

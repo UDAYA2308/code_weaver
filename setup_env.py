@@ -20,7 +20,7 @@ def setup_files():
             "openai": {
                 "api_key": "your_api_key_here",
                 "model": "gpt-4o",
-                "api_base_url": "https://api.openai.com/v1",
+                "base_url": "https://api.openai.com/v1",
                 "temperature": 0.0,
             },
             "paths": {"system_prompt": "system_prompt.md"},

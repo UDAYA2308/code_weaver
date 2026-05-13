@@ -34,10 +34,10 @@ export PYTHONPATH=$PYTHONPATH:$(pwd)
 uv run python -m src.code_weaver.chat
 ```
 
-**Option B: Web UI (Streamlit)**
+**Option B: Web UI (Chainlit)**
 ```bash
 export PYTHONPATH=$PYTHONPATH:$(pwd)
-uv run streamlit run src/code_weaver/web_ui.py
+uv run chainlit run src/code_weaver/web_ui.py
 ```
 
 ---
@@ -66,9 +66,6 @@ The agent is implemented as a state machine in `src/code_weaver/graph.py`.
 ### 📋 State Management
 The `AgentState` (defined in `src/code_weaver/state.py`) maintains the context across turns:
 - `messages`: A growing list of all interactions (Human, AI, and Tool messages).
-- `scratchpad`: A dedicated space for the agent to plan and reason before acting.
-- `working_files`: Tracks files currently under modification.
-- `iteration` & `llm_calls`: Telemetry to monitor agent efficiency and prevent infinite loops.
 
 ### 🧰 Toolset
 Code Weaver's capabilities are split into specialized modules in `src/code_weaver/tools/`:
@@ -106,4 +103,3 @@ code_weaver/
 │           ├── web_tools.py
 │           └── code_tools.py
 ```
-`

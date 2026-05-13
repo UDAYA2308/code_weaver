@@ -7,9 +7,12 @@ from langchain_core.messages import HumanMessage, AIMessage, ToolMessage
 
 from code_weaver.graph import app
 
-from code_weaver.cli import DB_PATH
+from code_weaver.cli import DB_PATH, GLOBAL_CONFIG_DIR
 
-load_dotenv()
+# Load environment variables from the global config directory
+env_path = GLOBAL_CONFIG_DIR / ".env"
+if env_path.exists():
+    load_dotenv(dotenv_path=env_path)
 
 _data_layer = SQLAlchemyDataLayer(conninfo=f"sqlite+aiosqlite:///{DB_PATH}")
 

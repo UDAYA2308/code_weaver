@@ -194,13 +194,10 @@ def serve(port=None, host=None):
         sys.exit(1)
 
     # Set the database path environment variable so Chainlit knows where to look
-    current_db_path = Path("chainlit.db")
-    if not current_db_path.exists():
-        try:
-            os.symlink(DB_PATH, current_db_path)
-        except OSError as e:
-            print(f"Warning: Could not create symlink for database: {e}")
-
+    # Set the database path environment variable so Chainlit knows where to look
+    # Instead of symlinking, we set the CHAINLIT_DATABASE_URL environment variable
+    # which Chainlit uses to locate the database.
+    env["CHAINLIT_DATABASE_URL"] = f"sqlite:///{DB_PATH}"
     # Handle port selection
     if port:
         final_port = str(port)

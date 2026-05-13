@@ -6,8 +6,21 @@ from langchain_core.tools import tool
 
 @tool
 def run_command(command: str, cwd: str = ".") -> str:
-    """Execute *command* in a subprocess and return its output.
-    The working directory is resolved relative to the project root.
+    """
+    Execute a shell command in a subprocess and return its output.
+    
+    Use this for:
+    1. Running tests (e.g., 'pytest', 'npm test').
+    2. Installing dependencies (e.g., 'pip install', 'npm install').
+    3. Building the project or running scripts.
+    4. Any system-level operation not covered by specialized tools.
+    
+    Args:
+        command: The full shell command to execute.
+        cwd: The working directory for the command, relative to project root. Defaults to root (".").
+        
+    Returns:
+        The combined STDOUT and STDERR of the command.
     """
     cwd_path = Path(cwd).resolve()
     result = subprocess.run(

@@ -11,4 +11,4 @@ fi
 
 # Run the Chainlit application
 echo "Starting Code Weaver Web UI on port 8080..."
-uv run chainlit run src/code_weaver/web_ui.py --port 8080 -w
+uv run chainlit run src/code_weaver/web_ui.py --port 8080

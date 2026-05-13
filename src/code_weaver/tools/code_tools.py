@@ -13,9 +13,22 @@ class ExecuteCodeInput(BaseModel):
 @tool("execute_python_code", args_schema=ExecuteCodeInput)
 def execute_python_code(code: str) -> str:
     """
-    Executes Python code in a temporary file and returns the output.
-    Use this for quick calculations, testing snippets, or data processing
-    without needing to save a permanent file.
+    Execute a snippet of Python code in an isolated temporary environment.
+    
+    Use this for:
+    1. Complex calculations or data transformations.
+    2. Testing a small logic snippet before implementing it in the codebase.
+    3. Processing data without creating permanent files.
+    
+    IMPORTANT: Use this ONLY for Python code. For shell commands, installation of packages, 
+    or running existing project tests, use 'run_command'.
+    
+    Args:
+        code (str): The complete, self-contained Python code to execute.
+        
+    Returns:
+        str: The combined STDOUT and STDERR of the execution. If no output is produced, 
+             returns a success message.
     """
     try:
         # Create a temporary file to run the code

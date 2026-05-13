@@ -59,12 +59,21 @@ def test_read_file(test_dir):
 
 def test_edit_file(test_dir):
     path = str(test_dir / "hello.txt")
+    # Test line-based replacement
     result = edit_file.invoke(
-        {"path": path, "old_content": "Hello World", "new_content": "Hello Universe"}
+        {"path": path, "start_line": 1, "end_line": 1, "new_content": "Hello Universe"}
     )
     assert "Edited" in result
     assert "Hello Universe" in (test_dir / "hello.txt").read_text()
 
+    # Test multi-line replacement
+    result_multi = edit_file.invoke(
+        {"path": path, "start_line": 2, "end_line": 3, "new_content": "Line 2 Updated\nLine 3 Updated"}
+    )
+    assert "Edited" in result_multi
+    content = (test_dir / "hello.txt").read_text()
+    assert "Line 2 Updated" in content
+    assert "Line 3 Updated" in content
 
 def test_list_dir(test_dir):
     # Patch the private variables in the file_tools module

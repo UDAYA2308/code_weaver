@@ -30,10 +30,7 @@ async def agent_node(state: AgentState, config: RunnableConfig) -> dict:
     if state.get("scratchpad"):
         system_prompt += f"\n\n## Scratchpad\n{state['scratchpad']}"
 
-    response = await llm.ainvoke(
-        [SystemMessage(content=system_prompt)] + state["messages"][-10:],
-        config=config 
-    )
+    response = await llm.ainvoke([SystemMessage(content=system_prompt)] + state["messages"], config=config)
     
     return {
         "messages": [response],

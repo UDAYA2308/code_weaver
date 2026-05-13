@@ -1,40 +1,73 @@
 import re
 import shutil
 from pathlib import Path
-from typing import List
+from typing import List, Optional
 
 from langchain_core.tools import tool
+from ..config import config
 
-
-def _load_gitignore(root: Path) -> List[str]:
-    """Load .gitignore patterns from *root* (or its ancestors).
-    Returns a list of glob‑style patterns. Empty list if no .gitignore found.
+def _validate_path(path_str: str) -> tuple[Optional[Path], Optional[str]]:
     """
-    gitignore_path = root / ".gitignore"
-    if not gitignore_path.is_file():
-        return []
-    patterns = []
-    for line in gitignore_path.read_text().splitlines():
-        line = line.strip()
-        if not line or line.startswith("#"):
-            continue
-        patterns.append(line)
-    return patterns
-
-
-def _is_ignored(path: Path, patterns: List[str]) -> bool:
-    """Return True if *path* matches any of the gitignore *patterns*.
-    The matching follows the simple glob rules used by ``Path.match``.
+    Strictly validates a path against allowed and blocked lists in config.
+    Supports regex and prefix matching.
+    
+    Returns:
+        (resolved_path, error_message)
     """
-    for pat in patterns:
-        if path.match(pat) or path.relative_to(path.anchor).match(pat):
-            return True
-    return False
+    try:
+        p = Path(path_str).resolve()
+    except Exception as e:
+        return None, f"Invalid path format: {e}"
 
+    p_str = str(p)
+    config_path = Path.home() / ".code_weaver" / "config.yaml"
 
-# Project root is the directory that contains the src folder
-_PROJECT_ROOT = Path(__file__).resolve().parents[2]
-_GITIGNORE_PATTERNS = _load_gitignore(_PROJECT_ROOT)
+    # 1. Blocked Paths (Highest Priority - Block always wins)
+    for blocked in config.paths.blocked_paths:
+        if any(char in blocked for char in r"^$[]()"):
+            try:
+                if re.search(blocked, p_str):
+                    return None, f"Security Error: Access to {path_str} is explicitly blocked by configuration. To change this, edit {config_path}."
+            except re.error:
+                if p_str.startswith(blocked):
+                    return None, f"Security Error: Access to {path_str} is explicitly blocked by configuration. To change this, edit {config_path}."
+        else:
+            try:
+                blocked_p = Path(blocked).resolve()
+                if p == blocked_p or p.is_relative_to(blocked_p):
+                    return None, f"Security Error: Access to {path_str} is explicitly blocked by configuration. To change this, edit {config_path}."
+            except Exception:
+                if p_str.startswith(blocked):
+                    return None, f"Security Error: Access to {path_str} is explicitly blocked by configuration. To change this, edit {config_path}."
+
+    # 2. Allowed Paths (If list is empty, everything is allowed by default)
+    if config.paths.allowed_paths:
+        is_allowed = False
+        for allowed in config.paths.allowed_paths:
+            if any(char in allowed for char in r"^$[]()"):
+                try:
+                    if re.search(allowed, p_str):
+                        is_allowed = True
+                        break
+                except re.error:
+                    if p_str.startswith(allowed):
+                        is_allowed = True
+                        break
+            else:
+                try:
+                    allowed_p = Path(allowed).resolve()
+                    if p == allowed_p or p.is_relative_to(allowed_p):
+                        is_allowed = True
+                        break
+                except Exception:
+                    if p_str.startswith(allowed):
+                        is_allowed = True
+                        break
+        
+        if not is_allowed:
+            return None, f"Security Error: Access to {path_str} is not in the allowed paths list. To grant access, add it to 'allowed_paths' in {config_path}."
+
+    return p, None
 
 
 @tool
@@ -45,17 +78,19 @@ def read_file(path: str, start_line: int = None, end_line: int = None) -> str:
         path: The absolute path to the file to be read.
         start_line: Optional starting line number (1-indexed) to read from.
         end_line: Optional ending line number (1-indexed) to read until.
-        
-    Returns:
-        The content of the file with line numbers, or an error message if the file 
-        cannot be accessed or is blocked by .gitignore.
     """
-    p = Path(path).resolve()
+    p, error = _validate_path(path)
+    if error:
+        return error
+
     if not p.is_file():
         return f"Error: {path} does not exist."
-    if _is_ignored(p, _GITIGNORE_PATTERNS):
-        return f"Error: Access to {path} is blocked by .gitignore."
-    lines = p.read_text(encoding="utf-8", errors="replace").splitlines()
+    
+    try:
+        lines = p.read_text(encoding="utf-8", errors="replace").splitlines()
+    except Exception as e:
+        return f"Error reading file: {e}"
+
     if start_line is not None or end_line is not None:
         start = (start_line or 1) - 1
         end = end_line if end_line is not None else len(lines)
@@ -67,38 +102,35 @@ def read_file(path: str, start_line: int = None, end_line: int = None) -> str:
 def edit_file(path: str, start_line: int, end_line: int, new_content: str) -> str:
     """Replace a range of lines in a file with new text. 
     
-    This is the primary tool for refactoring and modifying existing code. 
-    It is more robust than string replacement as it uses line numbers.
-    
     Args:
         path: The absolute path to the file to be edited.
         start_line: The first line number to replace (1-indexed).
         end_line: The last line number to replace (1-indexed).
         new_content: The new text to insert in place of the specified lines.
-        
-    Returns:
-        A success message or an error message if the file doesn't exist, 
-        is blocked by .gitignore, or line numbers are out of range.
     """
-    p = Path(path).resolve()
+    p, error = _validate_path(path)
+    if error:
+        return error
+
     if not p.is_file():
         return f"Error: {path} does not exist."
-    if _is_ignored(p, _GITIGNORE_PATTERNS):
-        return f"Error: Access to {path} is blocked by .gitignore."
     
-    lines = p.read_text(encoding="utf-8", errors="replace").splitlines()
+    try:
+        lines = p.read_text(encoding="utf-8", errors="replace").splitlines()
+    except Exception as e:
+        return f"Error reading file: {e}"
     
     if start_line < 1 or end_line > len(lines) or start_line > end_line:
         return f"Error: Line range {start_line}-{end_line} is out of bounds for file with {len(lines)} lines."
     
-    # Replace the slice. start_line is 1-indexed.
-    # lines[start_line-1 : end_line] replaces from start_line to end_line inclusive.
     lines[start_line - 1 : end_line] = new_content.splitlines()
-    
-    # Handle trailing newline if the original file had one or if new_content ends with one
     result_text = "\n".join(lines)
     
-    p.write_text(result_text, encoding="utf-8")
+    try:
+        p.write_text(result_text, encoding="utf-8")
+    except Exception as e:
+        return f"Error writing file: {e}"
+        
     return f"Edited lines {start_line} to {end_line} in {path}"
 
 
@@ -109,15 +141,17 @@ def write_file(path: str, content: str) -> str:
     Args:
         path: The absolute path where the file should be written.
         content: The string content to write to the file.
-        
-    Returns:
-        A success message or an error message if writing is blocked by .gitignore.
     """
-    p = Path(path).resolve()
-    if _is_ignored(p, _GITIGNORE_PATTERNS):
-        return f"Error: Writing to {path} is blocked by .gitignore."
-    p.parent.mkdir(parents=True, exist_ok=True)
-    p.write_text(content, encoding="utf-8")
+    p, error = _validate_path(path)
+    if error:
+        return error
+    
+    try:
+        p.parent.mkdir(parents=True, exist_ok=True)
+        p.write_text(content, encoding="utf-8")
+    except Exception as e:
+        return f"Error writing file: {e}"
+        
     return f"Written to {path}"
 
 
@@ -125,26 +159,24 @@ def write_file(path: str, content: str) -> str:
 def delete_path(path: str) -> str:
     """Delete a file or a directory.
     
-    Use this to remove obsolete files or clean up temporary directories.
-    
     Args:
         path: The absolute path to the file or directory to delete.
-        
-    Returns:
-        A success message or an error message if the path does not exist 
-        or is blocked by .gitignore.
     """
-    p = Path(path).resolve()
-    if not p.is_absolute():
-        return f"Error: The path {path} must be an absolute path."
+    p, error = _validate_path(path)
+    if error:
+        return error
+
     if not p.exists():
         return f"Error: {path} does not exist."
-    if _is_ignored(p, _GITIGNORE_PATTERNS):
-        return f"Error: Deleting {path} is blocked by .gitignore."
-    if p.is_dir():
-        shutil.rmtree(p)
-    else:
-        p.unlink()
+    
+    try:
+        if p.is_dir():
+            shutil.rmtree(p)
+        else:
+            p.unlink()
+    except Exception as e:
+        return f"Error deleting path: {e}"
+        
     return f"Deleted {path}"
 
 
@@ -155,23 +187,38 @@ def list_dir(path: str = ".", depth: int = 2) -> str:
     Args:
         path: The absolute path to the directory to list. Defaults to current directory.
         depth: How many levels of subdirectories to traverse. Defaults to 2.
-        
-    Returns:
-        A formatted tree-like string of the directory structure. 
-        Entries matching .gitignore are omitted.
     """
-    base = Path(path).resolve()
+    base, error = _validate_path(path)
+    if error:
+        return error
     if not base.is_dir():
         return f"Error: {path} is not a directory."
+    
     result = []
-    for p in sorted(base.rglob("*")):
-        rel = p.relative_to(base)
-        if len(rel.parts) > depth:
-            continue
-        if _is_ignored(p, _GITIGNORE_PATTERNS):
-            continue
-        indent = "  " * (len(rel.parts) - 1)
-        result.append(f"{indent}{p.name}{'/' if p.is_dir() else ''}")
+    try:
+        for p in sorted(base.rglob("*")):
+            resolved_p = p.resolve()
+            
+            is_blocked = False
+            for blocked in config.paths.blocked_paths:
+                if any(char in blocked for char in r"^$[]()"):
+                    if re.search(blocked, str(resolved_p)):
+                        is_blocked = True
+                        break
+                elif str(resolved_p).startswith(str(Path(blocked).resolve())):
+                    is_blocked = True
+                    break
+            if is_blocked:
+                continue
+
+            rel = p.relative_to(base)
+            if len(rel.parts) > depth:
+                continue
+            indent = "  " * (len(rel.parts) - 1)
+            result.append(f"{indent}{p.name}{'/' if p.is_dir() else ''}")
+    except Exception as e:
+        return f"Error listing directory: {e}"
+        
     return "\n".join(result) or "Empty directory."
 
 
@@ -181,30 +228,45 @@ def search(path: str, pattern: str, file_glob: str = "*") -> str:
     Search for a regular expression pattern across files in a directory.
     
     Args:
-        path (str): The absolute path to the directory to search in.
-        pattern (str): The regex pattern to search for.
-        file_glob (str): A glob pattern to filter files (e.g., "*.py"). Defaults to all files.
-        
-    Returns:
-        str: A list of matches in the format 'file:line: content'. 
-             Returns 'No matches found' if no occurrences are found.
+        path: The absolute path to the directory to search in.
+        pattern: The regex pattern to search for.
+        file_glob: A glob pattern to filter files (e.g., "*.py"). Defaults to all files.
     """
-    root = Path(path).resolve()
-    if not root.is_absolute():
-        return f"Error: The path {path} must be an absolute path."
+    root, error = _validate_path(path)
+    if error:
+        return error
     if not root.is_dir():
         return f"Error: {path} is not a directory."
+    
     results = []
-    for p in root.rglob(file_glob):
-        if not p.is_file() or _is_ignored(p, _GITIGNORE_PATTERNS):
-            continue
-        try:
-            text = p.read_text(errors="ignore")
-        except Exception:
-            continue
-        for i, line in enumerate(text.splitlines(), 1):
-            if re.search(pattern, line):
-                results.append(f"{p}:{i}: {line.strip()}")
+    try:
+        for p in root.rglob(file_glob):
+            resolved_p = p.resolve()
+            
+            is_blocked = False
+            for blocked in config.paths.blocked_paths:
+                if any(char in blocked for char in r"^$[]()"):
+                    if re.search(blocked, str(resolved_p)):
+                        is_blocked = True
+                        break
+                elif str(resolved_p).startswith(str(Path(blocked).resolve())):
+                    is_blocked = True
+                    break
+            if is_blocked:
+                continue
+
+            if not p.is_file():
+                continue
+            try:
+                text = p.read_text(errors="ignore")
+            except Exception:
+                continue
+            for i, line in enumerate(text.splitlines(), 1):
+                if re.search(pattern, line):
+                    results.append(f"{p}:{i}: {line.strip()}")
+    except Exception as e:
+        return f"Error during search: {e}"
+        
     return "\n".join(results) if results else "No matches found."
 
 

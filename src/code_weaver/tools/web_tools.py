@@ -16,9 +16,6 @@ def fetch_url(url: str) -> str:
     
     Args:
         url: The full URL to fetch (including http/https).
-        
-    Returns:
-        The first 5KB of the page content to prevent token overflow.
     """
     try:
         with urllib.request.urlopen(url, timeout=10) as r:
@@ -37,9 +34,6 @@ def duckduckgo_search(query: str) -> str:
     
     Args:
         query: The search query string.
-        
-    Returns:
-        A summary of the search results.
     """
     try:
         return ddg_search.run(query)

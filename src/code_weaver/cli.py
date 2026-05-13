@@ -121,7 +121,14 @@ def init():
             "temperature": 0.0
         },
         "paths": {
-            "system_prompt": "system_prompt.md"
+            "system_prompt": "system_prompt.md",
+            "allowed_commands": [
+                "pytest", "pip", "uv", "git", "ls", "dir", "mkdir", "echo", "python", "node", "npm",
+                "yarn", "pnpm", "pwd", "whoami", "date", "go", "cargo", "rustc", "make", "cmake",
+                "gcc", "clang", "ruff", "flake8", "black", "eslint", "prettier", "chainlit"
+            ],
+            "allowed_paths": [],
+            "blocked_paths": []
         }
     }
     

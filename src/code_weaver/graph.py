@@ -21,8 +21,6 @@ llm = ChatOpenAI(
 
 # ── Graph Nodes ──────────────────────────────────────────────────────────────────
 
-
-# graph.py
 from langchain_core.runnables import RunnableConfig
 
 async def agent_node(state: AgentState, config: RunnableConfig) -> dict:
@@ -42,16 +40,16 @@ def should_continue(state: AgentState) -> str:
     return END
 
 
-
 # ── Graph Construction ───────────────────────────────────────────────────────────
 
-tool_node = ToolNode(all_tools)
+def create_app():
+    tool_node = ToolNode(all_tools)
+    workflow = StateGraph(AgentState)
+    workflow.add_node("agent", agent_node)
+    workflow.add_node("tools", tool_node)
+    workflow.set_entry_point("agent")
+    workflow.add_conditional_edges("agent", should_continue, {"tools": "tools", END: END})
+    workflow.add_edge("tools", "agent")
+    return workflow.compile()
 
-graph = StateGraph(AgentState)
-graph.add_node("agent", agent_node)
-graph.add_node("tools", tool_node)
-graph.set_entry_point("agent")
-graph.add_conditional_edges("agent", should_continue, {"tools": "tools", END: END})
-graph.add_edge("tools", "agent")
-
-app = graph.compile()
+app = create_app()

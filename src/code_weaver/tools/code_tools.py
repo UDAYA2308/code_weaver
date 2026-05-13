@@ -25,10 +25,6 @@ def execute_python_code(code: str) -> str:
     
     Args:
         code (str): The complete, self-contained Python code to execute.
-        
-    Returns:
-        str: The combined STDOUT and STDERR of the execution. If no output is produced, 
-             returns a success message.
     """
     try:
         # Create a temporary file to run the code
@@ -39,7 +35,7 @@ def execute_python_code(code: str) -> str:
         try:
             # Execute the temporary file
             result = subprocess.run(
-                ["python3", tmp_path], capture_output=True, text=True, timeout=30
+                ["python", tmp_path], capture_output=True, text=True, timeout=30
             )
 
             output = ""

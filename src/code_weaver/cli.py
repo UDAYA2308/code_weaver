@@ -162,11 +162,11 @@ def init():
     # Initialize Database
     asyncio.run(init_db())
 
-    print(f"\nInitialization complete!")
+    print("\nInitialization complete!")
     print("-" * 50)
     print(f"Your configuration files and database have been created at: {GLOBAL_CONFIG_DIR}")
     print("\nNEXT STEPS:")
-    print(f"1. Open the following files in a text editor:")
+    print("1. Open the following files in a text editor:")
     print(f"   - {GLOBAL_CONFIG_DIR / 'config.yaml'}  <-- Set your model and temperature")
     print(f"   - {GLOBAL_CONFIG_DIR / '.env'}         <-- Enter your OPENAI_API_KEY")
     print(f"   - {GLOBAL_CONFIG_DIR / 'system_prompt.md'} <-- Customize the agent's behavior")

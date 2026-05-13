@@ -14,9 +14,34 @@ class OpenAIConfig(BaseModel):
 class PathConfig(BaseModel):
     system_prompt: str = "system_prompt.md"
     allowed_commands: list[str] = [
-        "pytest", "pip", "uv", "git", "ls", "dir", "mkdir", "echo", "python", "node", "npm",
-        "yarn", "pnpm", "pwd", "whoami", "date", "go", "cargo", "rustc", "make", "cmake",
-        "gcc", "clang", "ruff", "flake8", "black", "eslint", "prettier"
+        "pytest",
+        "pip",
+        "uv",
+        "git",
+        "ls",
+        "dir",
+        "mkdir",
+        "echo",
+        "python",
+        "node",
+        "npm",
+        "yarn",
+        "pnpm",
+        "pwd",
+        "whoami",
+        "date",
+        "go",
+        "cargo",
+        "rustc",
+        "make",
+        "cmake",
+        "gcc",
+        "clang",
+        "ruff",
+        "flake8",
+        "black",
+        "eslint",
+        "prettier",
     ]
     allowed_paths: list[str] = []
     blocked_paths: list[str] = []

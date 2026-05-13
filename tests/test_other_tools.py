@@ -1,8 +1,8 @@
 from unittest.mock import patch, MagicMock
 
-from src.code_weaver.tools.code_tools import execute_python_code
-from src.code_weaver.tools.system_tools import run_command
-from src.code_weaver.tools.web_tools import fetch_url, duckduckgo_search
+from code_weaver.tools.code_tools import execute_python_code
+from code_weaver.tools.system_tools import run_command
+from code_weaver.tools.web_tools import fetch_url, duckduckgo_search
 
 
 def test_run_command():
@@ -32,7 +32,9 @@ def test_fetch_url_failure():
 
 
 def test_duckduckgo_search():
-    with patch("src.code_weaver.tools.web_tools.DuckDuckGoSearchRun.run", create=True) as mock_run:
+    with patch(
+        "code_weaver.tools.web_tools.DuckDuckGoSearchRun.run", create=True
+    ) as mock_run:
         mock_run.return_value = "Mocked search result"
         result = duckduckgo_search.invoke({"query": "test query"})
         assert "Mocked search result" in result

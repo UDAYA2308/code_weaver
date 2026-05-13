@@ -1,7 +1,7 @@
 from unittest.mock import patch, MagicMock
 import asyncio
 
-from src.code_weaver.graph import agent_node, should_continue
+from code_weaver.graph import agent_node, should_continue
 
 
 def test_should_continue_with_tools():
@@ -25,15 +25,15 @@ def test_should_continue_without_tools():
     assert should_continue(state) == END
 
 
-@patch("src.code_weaver.graph.llm")
-@patch("src.code_weaver.graph.load_system_prompt")
+@patch("code_weaver.graph.llm")
+@patch("code_weaver.graph.load_system_prompt")
 def test_agent_node(mock_load_prompt, mock_llm):
     mock_load_prompt.return_value = "System Prompt"
 
     # Mock the invoke method of the LLM
     mock_response = MagicMock()
     mock_response.content = "AI Response"
-    
+
     # Use a Future to mock the async call
     future = asyncio.Future()
     future.set_result(mock_response)

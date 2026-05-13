@@ -138,7 +138,7 @@ def init():
     env_path = GLOBAL_CONFIG_DIR / ".env"
     if not env_path.exists():
         with open(env_path, "w") as f:
-            f.write(f'CHAINLIT_AUTH_SECRET="{secrets.token_hex(32)}"\nOPENAI_API_KEY=your-api-key-here\n')
+            f.write(f'CHAINLIT_AUTH_SECRET="{secrets.token_hex(32)}"\n')
         print(f"Created {env_path}")
     else:
         print(f"{env_path} already exists. Skipping.")
@@ -197,8 +197,6 @@ def serve(port=None, host=None):
     current_db_path = Path("chainlit.db")
     if not current_db_path.exists():
         try:
-            # Use a symlink to ensure the app finds the DB in the current folder
-            # but the data persists in the global folder.
             os.symlink(DB_PATH, current_db_path)
         except OSError as e:
             print(f"Warning: Could not create symlink for database: {e}")
@@ -251,7 +249,5 @@ def main():
         parser.print_help()
         sys.exit(1)
 
-if __name__ == "__main__":
-    main()
 if __name__ == "__main__":
     main()

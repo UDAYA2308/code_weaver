@@ -7,9 +7,11 @@ from langchain_core.messages import HumanMessage, AIMessage, ToolMessage
 
 from code_weaver.graph import app
 
+from code_weaver.cli import DB_PATH
+
 load_dotenv()
 
-_data_layer = SQLAlchemyDataLayer(conninfo="sqlite+aiosqlite:///chainlit.db")
+_data_layer = SQLAlchemyDataLayer(conninfo=f"sqlite+aiosqlite:///{DB_PATH}")
 
 
 @cl.data_layer

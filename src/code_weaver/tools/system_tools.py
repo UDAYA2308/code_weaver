@@ -16,9 +16,11 @@ def run_command(command: str, cwd: str = ".") -> str:
         cwd=cwd_path,
         capture_output=True,
         text=True,
+        encoding="utf-8",
         timeout=30,
     )
-    output = result.stdout + result.stderr
+
+    output = (result.stdout or "") + (result.stderr or "")
     return output.strip() or "Command completed with no output."
 
 

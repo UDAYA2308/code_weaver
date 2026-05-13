@@ -5,52 +5,65 @@ Code Weaver is an expert AI coding agent built with **LangGraph** and **LangChai
 ## 🚀 Quick Start
 
 ### 1. Installation
-This project uses [uv](https://github.com/astral-sh/uv) for fast, reliable dependency management.
 
+You can install Code Weaver directly from the repository or a local folder.
+
+**From GitHub:**
 ```bash
-# Install uv if not already present
-curl -LsSf https://astral.sh/uv/install.sh | sh
-
-# Sync the project environment
-uv sync
+pip install git+https://github.com/your-username/code_weaver.git
 ```
 
-### 2. Configuration
-Code Weaver requires an LLM backend (OpenAI compatible).
+**From a local folder:**
+```bash
+pip install /path/to/your/code_weaver_folder
+```
 
-- **App Settings**: Configuration is managed in `config.yaml`. To generate a default template:
-  ```bash
-  uv run python setup_env.py
-  ```
-  Open `config.yaml` and provide your `api_key` and preferred `model`.
-- **Agent Persona**: The agent's core instructions, safety guidelines, and communication style are defined in `system_prompt.md`.
+### 2. Initialization
+
+Before running the server, you need to initialize the configuration files and database. This creates a hidden directory in your user home folder (`~/.code_weaver`) to store your settings globally.
+
+```bash
+code_weaver init
+```
+
+**What this does:**
+- Creates `~/.code_weaver/config.yaml` (LLM settings)
+- Creates `~/.code_weaver/.env` (API keys)
+- Creates `~/.code_weaver/system_prompt.md` (Agent persona)
+- Initializes the local database for session persistence.
+
+**Next Steps:**
+Open the created files in `~/.code_weaver` and provide your `OPENAI_API_KEY` and preferred model.
 
 ### 3. Running the Agent
-You can interact with Code Weaver via two different interfaces:
 
-**Option A: Interactive CLI**
+You can now start the Code Weaver server from **any** project directory. The agent will have access to the files in the folder where you run the command.
+
 ```bash
-export PYTHONPATH=$PYTHONPATH:$(pwd)
-uv run python -m src.code_weaver.chat
+# Navigate to your project
+cd /path/to/your/project
+
+# Start the server
+code_weaver serve
 ```
 
-**Option B: Web UI (Chainlit)**
+**Advanced Options:**
+You can specify a custom host or port if the default is occupied:
 ```bash
-export PYTHONPATH=$PYTHONPATH:$(pwd)
-uv run chainlit run src/code_weaver/web_ui.py
+code_weaver serve --port 8080 --host 0.0.0.0
 ```
 
 ---
 
 ## 🧪 Testing
+
 The project includes a comprehensive test suite to ensure the reliability of the agent's tools and graph logic.
 
-To run the tests:
+To run the tests (from the source folder):
 ```bash
 export PYTHONPATH=$PYTHONPATH:$(pwd)
-uv run pytest
+pytest
 ```
-
 
 ## 🛠️ Technical Architecture
 
@@ -76,31 +89,30 @@ Code Weaver's capabilities are split into specialized modules in `src/code_weave
 | **System** | `run_command` | Executes shell commands for testing, building, or installing dependencies. |
 | **Web** | `duckduckgo_search`, `fetch_url` | Accesses external documentation and real-time information. |
 | **Code** | `execute_python_code` | Runs Python snippets in a temporary isolated file for calculations or logic tests. |
+
 ---
 
 ## 📂 Project Structure
 
 ```text
 code_weaver/
-├── config.yaml          # LLM settings (model, base_url, temperature)
-├── system_prompt.md     # The "Soul" of the agent: guidelines and persona
 ├── pyproject.toml       # Project metadata and dependencies
-├── setup_env.py         # Config initialization utility
 ├── README.md            # Project documentation
 ├── src/
 │   └── code_weaver/
-│       ├── main.py      # Entry point (currently redirects to chat)
-│       ├── chat.py      # CLI implementation with multi-line input
-│       ├── graph.py     # LangGraph state machine definition
-│       ├── state.py     # AgentState TypedDict definition
-│       ├── config.py    # Pydantic configuration loader
-│       ├── utils.py     # System prompt and helper utilities
-│       ├── web_ui.py    # Chainlit-based visual interface
-│       └── tools/       # Tool implementations
+│       ├── cli.py      # Command line interface (init, serve)
+│       ├── main.py     # Entry point
+│       ├── chat.py     # CLI chat implementation
+│       ├── graph.py    # LangGraph state machine definition
+│       ├── state.py    # AgentState TypedDict definition
+│       ├── config.py   # Pydantic configuration loader
+│       ├── utils.py    # System prompt and helper utilities
+│       ├── web_ui.py   # Chainlit-based visual interface
+│       └── tools/      # Tool implementations
 │           ├── __init__.py
 │           ├── file_tools.py
 │           ├── system_tools.py
 │           ├── web_tools.py
 │           └── code_tools.py
-└── tests/               # Test suite for tools and agent logic
+└── tests/              # Test suite for tools and agent logic
 ```

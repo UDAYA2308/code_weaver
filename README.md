@@ -72,11 +72,10 @@ Code Weaver's capabilities are split into specialized modules in `src/code_weave
 
 | Category | Tools | Description |
 | :--- | :--- | :--- |
-| **File** | `read_file`, `write_file`, `edit_file`, `delete_path`, `list_dir`, `search` | Full filesystem access. **Safety**: All tools respect `.gitignore` patterns. |
+| **File** | `read_file`, `write_file`, `edit_file`, `delete_path`, `list_dir`, `search` | Full filesystem access. **Safety**: All tools respect `.gitignore` patterns and enforce absolute paths to prevent ambiguity. |
 | **System** | `run_command` | Executes shell commands for testing, building, or installing dependencies. |
-| **Web** | `google_search`, `fetch_url` | Accesses external documentation and real-time information. |
+| **Web** | `duckduckgo_search`, `fetch_url` | Accesses external documentation and real-time information. |
 | **Code** | `execute_python_code` | Runs Python snippets in a temporary isolated file for calculations or logic tests. |
-
 ---
 
 ## 📂 Project Structure
@@ -87,6 +86,7 @@ code_weaver/
 ├── system_prompt.md     # The "Soul" of the agent: guidelines and persona
 ├── pyproject.toml       # Project metadata and dependencies
 ├── setup_env.py         # Config initialization utility
+├── README.md            # Project documentation
 ├── src/
 │   └── code_weaver/
 │       ├── main.py      # Entry point (currently redirects to chat)
@@ -102,4 +102,5 @@ code_weaver/
 │           ├── system_tools.py
 │           ├── web_tools.py
 │           └── code_tools.py
+└── tests/               # Test suite for tools and agent logic
 ```

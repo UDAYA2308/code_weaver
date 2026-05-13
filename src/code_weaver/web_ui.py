@@ -21,9 +21,11 @@ _data_layer = SQLAlchemyDataLayer(conninfo=f"sqlite+aiosqlite:///{DB_PATH}")
 def get_data_layer():
     return _data_layer
 
+
 @cl.password_auth_callback
 def auth_callback(username: str, password: str):
     return cl.User(identifier=username, metadata={"role": "admin"})
+
 
 def get_initial_state():
     return {
@@ -31,6 +33,7 @@ def get_initial_state():
         "messages": [],
         "message_count": 0,
     }
+
 
 @cl.on_chat_start
 async def start():
@@ -64,6 +67,7 @@ async def on_chat_resume(thread):
         },
     )
 
+
 @cl.on_message
 async def main(message: cl.Message):
     state = cl.user_session.get("graph_state") or get_initial_state()
@@ -71,7 +75,7 @@ async def main(message: cl.Message):
     state["message_count"] = state.get("message_count", 0) + 1
 
     ui_msg = cl.Message(content="")
-    
+
     active_steps = {}
     parent_actions_step = None
     final_state = state
@@ -88,10 +92,18 @@ async def main(message: cl.Message):
                 msg_chunk, metadata = chunk["data"]
                 node_name = metadata.get("langgraph_node")
 
-                if node_name == "agent" and hasattr(msg_chunk, "content") and msg_chunk.content:
+                if (
+                    node_name == "agent"
+                    and hasattr(msg_chunk, "content")
+                    and msg_chunk.content
+                ):
                     await ui_msg.stream_token(msg_chunk.content)
 
-                if node_name == "agent" and hasattr(msg_chunk, "tool_calls") and msg_chunk.tool_calls:
+                if (
+                    node_name == "agent"
+                    and hasattr(msg_chunk, "tool_calls")
+                    and msg_chunk.tool_calls
+                ):
                     if parent_actions_step is None:
                         parent_actions_step = cl.Step(name="⚙️ Actions Taken")
                         await parent_actions_step.send()
@@ -100,9 +112,9 @@ async def main(message: cl.Message):
                         tid = tc.get("id")
                         if tid and tid not in active_steps:
                             step = cl.Step(
-                                name=f"🛠️ Tool: {tc['name']}", 
+                                name=f"🛠️ Tool: {tc['name']}",
                                 parent_id=parent_actions_step.id,
-                                type="tool"
+                                type="tool",
                             )
                             step.input = tc.get("args")
                             await step.send()
@@ -111,7 +123,7 @@ async def main(message: cl.Message):
             elif chunk["type"] == "values":
                 final_state = chunk["data"]
                 all_msgs = final_state.get("messages", [])
-                
+
                 for m in all_msgs[processed_msg_count:]:
                     if isinstance(m, AIMessage) and m.tool_calls:
                         for tc in m.tool_calls:
@@ -121,16 +133,20 @@ async def main(message: cl.Message):
                                 if active_steps[tid].input != tc.get("args"):
                                     active_steps[tid].input = tc.get("args")
                                     await active_steps[tid].update()
-                    
+
                     if isinstance(m, ToolMessage):
                         tid = m.tool_call_id
                         if tid in active_steps:
                             step = active_steps[tid]
                             if not step.output:
                                 step.output = m.content
-                                step.language = "json" if isinstance(m.content, (dict, list)) else "markdown"
+                                step.language = (
+                                    "json"
+                                    if isinstance(m.content, (dict, list))
+                                    else "markdown"
+                                )
                                 await step.update()
-                
+
                 processed_msg_count = len(all_msgs)
                 final_state["message_count"] = processed_msg_count
 

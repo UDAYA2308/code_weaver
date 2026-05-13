@@ -14,15 +14,15 @@ class ExecuteCodeInput(BaseModel):
 def execute_python_code(code: str) -> str:
     """
     Execute a snippet of Python code in an isolated temporary environment.
-    
+
     Use this for:
     1. Complex calculations or data transformations.
     2. Testing a small logic snippet before implementing it in the codebase.
     3. Processing data without creating permanent files.
-    
-    IMPORTANT: Use this ONLY for Python code. For shell commands, installation of packages, 
+
+    IMPORTANT: Use this ONLY for Python code. For shell commands, installation of packages,
     or running existing project tests, use 'run_command'.
-    
+
     Args:
         code (str): The complete, self-contained Python code to execute.
     """

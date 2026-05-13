@@ -4,7 +4,8 @@ import os
 from pathlib import Path
 
 from langchain_core.tools import tool
-from ..config import config
+from code_weaver.config import config
+
 
 def _is_command_safe(command: str) -> bool:
     """
@@ -19,7 +20,7 @@ def _is_command_safe(command: str) -> bool:
     parts = command.split()
     if not parts:
         return False
-    
+
     base_cmd = parts[0].lower()
     if "/" in base_cmd or "\\" in base_cmd:
         base_cmd = Path(base_cmd).name.lower()
@@ -27,15 +28,16 @@ def _is_command_safe(command: str) -> bool:
     # Use the whitelist from config.yaml
     return base_cmd in config.paths.allowed_commands
 
+
 @tool
 def run_command(command: str, cwd: str = ".") -> str:
     """
     Execute a shell command in a subprocess and return its output.
-    
+
     Args:
         command: The full shell command to execute.
         cwd: The working directory for the command, relative to project root. Defaults to root (".").
-        
+
     Returns:
         The combined STDOUT and STDERR of the command.
     """
@@ -48,7 +50,7 @@ def run_command(command: str, cwd: str = ".") -> str:
         )
 
     cwd_path = Path(cwd).resolve()
-    
+
     safe_env = {
         "PATH": os.environ.get("PATH", ""),
         "LANG": "en_US.UTF-8",
@@ -64,7 +66,7 @@ def run_command(command: str, cwd: str = ".") -> str:
             text=True,
             encoding="utf-8",
             timeout=30,
-            env=safe_env
+            env=safe_env,
         )
         output = (result.stdout or "") + (result.stderr or "")
         return output.strip() or "Command completed with no output."
@@ -72,5 +74,6 @@ def run_command(command: str, cwd: str = ".") -> str:
         return "Error: Command timed out after 30 seconds."
     except Exception as e:
         return f"System Error: {e}"
+
 
 system_tools = [run_command]

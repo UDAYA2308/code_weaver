@@ -1,10 +1,10 @@
 import re
 import shutil
 from pathlib import Path
-from typing import List, Optional
+from typing import Optional
 
 from langchain_core.tools import tool
-from ..config import config
+from code_weaver.config import config
 
 def _validate_path(path_str: str) -> tuple[Optional[Path], Optional[str]]:
     """

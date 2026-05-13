@@ -24,7 +24,6 @@ def setup_files():
                 "temperature": 0.0,
             },
             "paths": {"system_prompt": "system_prompt.md"},
-            "agent": {"max_iterations": 10},
         }
         with open(config_file, "w") as f:
             yaml.dump(config_content, f, default_flow_style=False)

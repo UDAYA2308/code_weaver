@@ -1,4 +1,5 @@
 from unittest.mock import patch, MagicMock
+import asyncio
 
 from src.code_weaver.graph import agent_node, should_continue
 
@@ -32,18 +33,20 @@ def test_agent_node(mock_load_prompt, mock_llm):
     # Mock the invoke method of the LLM
     mock_response = MagicMock()
     mock_response.content = "AI Response"
-    mock_llm.invoke.return_value = mock_response
+    
+    # Use a Future to mock the async call
+    future = asyncio.Future()
+    future.set_result(mock_response)
+    mock_llm.ainvoke.return_value = future
 
     state = {
         "messages": [],
-        "scratchpad": "Planning...",
-        "iteration": 0,
-        "llm_calls": 0,
     }
 
-    result = agent_node(state)
+    # Mock config
+    mock_config = {}
+
+    result = asyncio.run(agent_node(state, mock_config))
 
     assert "messages" in result
-    assert result["iteration"] == 1
-    assert result["llm_calls"] == 1
-    mock_llm.invoke.assert_called_once()
+    mock_llm.ainvoke.assert_called_once()

@@ -37,10 +37,6 @@ def get_initial_state():
     return {
         "task": "",
         "messages": [],
-        "scratchpad": "",
-        "working_files": [],
-        "iteration": 0,
-        "llm_calls": 0,
     }
 
 
@@ -75,10 +71,6 @@ async def on_chat_resume(thread):
         {
             "task": meta.get("task", ""),
             "messages": messages,
-            "scratchpad": meta.get("scratchpad", ""),
-            "working_files": meta.get("working_files", []),
-            "iteration": meta.get("iteration", 0),
-            "llm_calls": meta.get("llm_calls", 0),
         },
     )
 
@@ -104,8 +96,7 @@ async def main(message: cl.Message):
             node_name = metadata.get("langgraph_node")
 
             if node_name == "agent" and hasattr(msg_chunk, "content") and msg_chunk.content:
-                if not any(tag in msg_chunk.content for tag in ["<|", "|>", "thought"]):
-                    await ui_msg.stream_token(msg_chunk.content)
+                await ui_msg.stream_token(msg_chunk.content)
 
             if node_name == "agent" and hasattr(msg_chunk, "tool_calls") and msg_chunk.tool_calls:
                 if parent_actions_step is None:

@@ -32,10 +32,6 @@ def chat() -> None:
     state: AgentState = {
         "task": "",
         "messages": [],
-        "scratchpad": "",
-        "working_files": [],
-        "iteration": 0,
-        "llm_calls": 0,
     }
 
     while True:
@@ -60,8 +56,6 @@ def chat() -> None:
         if final_chunk:
             assistant_msg = final_chunk["messages"][-1]
             state["messages"].append(assistant_msg)
-            state["iteration"] = final_chunk.get("iteration", state["iteration"])
-            state["llm_calls"] = final_chunk.get("llm_calls", state["llm_calls"])
 
 
 if __name__ == "__main__":

@@ -27,15 +27,11 @@ from langchain_core.runnables import RunnableConfig
 
 async def agent_node(state: AgentState, config: RunnableConfig) -> dict:
     system_prompt = load_system_prompt()
-    if state.get("scratchpad"):
-        system_prompt += f"\n\n## Scratchpad\n{state['scratchpad']}"
-
+    
     response = await llm.ainvoke([SystemMessage(content=system_prompt)] + state["messages"], config=config)
     
     return {
         "messages": [response],
-        "iteration": state.get("iteration", 0) + 1,
-        "llm_calls": state.get("llm_calls", 0) + 1,
     }
 
 

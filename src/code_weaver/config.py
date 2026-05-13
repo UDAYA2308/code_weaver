@@ -15,15 +15,9 @@ class PathConfig(BaseModel):
     system_prompt: str = "system_prompt.md"
 
 
-class AgentConfig(BaseModel):
-    max_iterations: int = 10
-
-
 class AppConfig(BaseModel):
     openai: OpenAIConfig
     paths: PathConfig
-    agent: AgentConfig
-
 
 def load_config(config_path: str = "config.yaml") -> AppConfig:
     root_dir = Path(__file__).parent.parent.parent

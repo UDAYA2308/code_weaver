@@ -8,3 +8,6 @@ from typing import TypedDict, Annotated
 class AgentState(TypedDict):
     task: str
     messages: Annotated[list, operator.add]
+    system_prompt: str
+    temperature: float
+    max_tokens: int

@@ -2,11 +2,11 @@ import json
 
 import chainlit as cl
 from chainlit.data.sql_alchemy import SQLAlchemyDataLayer
+from chainlit.input_widget import TextInput, Slider
 from dotenv import load_dotenv
 from langchain_core.messages import HumanMessage, AIMessage, ToolMessage
 
 from code_weaver.graph import app
-
 from code_weaver.cli import DB_PATH, GLOBAL_CONFIG_DIR
 
 # Load environment variables from the global config directory
@@ -32,12 +32,48 @@ def get_initial_state():
         "task": "",
         "messages": [],
         "message_count": 0,
+        "system_prompt": "",
+        "temperature": 0.7,
+        "max_tokens": 4096,
     }
+
+
+async def send_chat_settings(state):
+    """Helper to send/refresh ChatSettings UI based on current state."""
+    await cl.ChatSettings(
+        [
+            TextInput(
+                id="system_prompt",
+                label="Custom System Prompt",
+                initial=state.get("system_prompt", ""),
+                placeholder="e.g. You are a security expert focusing on vulnerabilities...",
+                description="Override the default behavior of Code Weaver for this session."
+            ),
+            Slider(
+                id="temperature",
+                label="Temperature",
+                initial=state.get("temperature", 0.7),
+                min=0.0,
+                max=2.0,
+                step=0.1,
+                description="Controls randomness: lower is more deterministic."
+            ),
+            TextInput(
+                id="max_tokens",
+                label="Max Tokens",
+                initial=str(state.get("max_tokens", 4096)),
+                placeholder="e.g. 2048",
+                description="Maximum length of the generated response."
+            ),
+        ]
+    ).send()
 
 
 @cl.on_chat_start
 async def start():
-    cl.user_session.set("graph_state", get_initial_state())
+    initial_state = get_initial_state()
+    cl.user_session.set("graph_state", initial_state)
+    await send_chat_settings(initial_state)
 
 
 @cl.on_chat_resume
@@ -51,21 +87,26 @@ async def on_chat_resume(thread):
                 messages.append(AIMessage(content=step.get("output", "")))
 
     meta = thread.get("metadata", {})
-    # SQLite returns JSON as string, handle conversion
     if isinstance(meta, str):
         try:
             meta = json.loads(meta)
         except (json.JSONDecodeError, TypeError):
             meta = {}
 
-    cl.user_session.set(
-        "graph_state",
-        {
-            "task": meta.get("task", ""),
-            "messages": messages,
-            "message_count": len(messages),
-        },
-    )
+    chat_settings = meta.get("chat_settings") or {}
+    
+    state = {
+        "task": meta.get("task", ""),
+        "messages": messages,
+        "message_count": len(messages),
+        "system_prompt": chat_settings.get("system_prompt"),
+        "temperature": chat_settings.get("temperature"),
+        "max_tokens": chat_settings.get("max_tokens"),
+    }
+    cl.user_session.set("graph_state", state)
+
+    # Sync ChatSettings UI with restored state
+    await send_chat_settings(state)
 
 
 @cl.on_message
@@ -73,6 +114,14 @@ async def main(message: cl.Message):
     state = cl.user_session.get("graph_state") or get_initial_state()
     state["messages"].append(HumanMessage(content=message.content))
     state["message_count"] = state.get("message_count", 0) + 1
+
+    # Get the current settings from session
+    settings = cl.user_session.get('chat_settings')
+    
+    # Add settings to the state so the graph can use them
+    state["system_prompt"] = settings["system_prompt"]
+    state["temperature"] = settings["temperature"]
+    state["max_tokens"] = int(settings["max_tokens"])
 
     ui_msg = cl.Message(content="")
 

@@ -11,9 +11,16 @@ def _is_command_safe(command: str) -> bool:
     """
     Strictly validates if a command is safe based on the config whitelist.
     """
-    # 1. Block shell chaining/piping to prevent command injection
-    forbidden_chars = r"[;&|><`$\(\)\{\}\[\]]"
+    # 1. Block dangerous shell chaining/piping to prevent command injection
+    # We allow && and || for basic logical chaining, but block ; | > < ` $ ( ) { } [ ]
+    forbidden_chars = r"[;`$\(\)\{\}\[\]]"
     if re.search(forbidden_chars, command):
+        return False
+    
+    # Specifically block piping and redirection
+    if "|" in command and "||" not in command:
+        return False
+    if ">" in command or "<" in command:
         return False
 
     # 2. Extract the base command

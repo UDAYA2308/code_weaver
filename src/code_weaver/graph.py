@@ -19,14 +19,32 @@ llm = ChatOpenAI(
     streaming=True,
 ).bind_tools(all_tools)
 
+def get_llm(temperature: float = None, max_tokens: int = None):
+    """Returns an LLM instance with optional overrides for temperature and max_tokens."""
+    return ChatOpenAI(
+        model=config.openai.model,
+        base_url=config.openai.base_url,
+        api_key=config.openai.api_key,
+        temperature=temperature if temperature is not None else config.openai.temperature,
+        max_tokens=max_tokens,
+        streaming=True,
+    ).bind_tools(all_tools)
+
 
 # ── Graph Nodes ──────────────────────────────────────────────────────────────────
 
 
 async def agent_node(state: AgentState, config: RunnableConfig) -> dict:
-    system_prompt = load_system_prompt()
-
-    response = await llm.ainvoke(
+    # Use the system prompt from state if provided, otherwise load default
+    system_prompt = state.get("system_prompt") or load_system_prompt()
+    
+    # Get LLM with dynamic temperature and max_tokens from state
+    dynamic_llm = get_llm(
+        temperature=state.get("temperature"), 
+        max_tokens=state.get("max_tokens")
+    )
+    
+    response = await dynamic_llm.ainvoke(
         [SystemMessage(content=system_prompt)] + state["messages"], config=config
     )
 
